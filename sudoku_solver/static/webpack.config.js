@@ -4,7 +4,7 @@ var webpack = require('webpack')
 module.exports = {
   entry: './js/main.js',
   output: {
-    path:  __dirname + "/dist",
+    path: __dirname + "/dist",
     filename: 'build.js'
   },
   module: {
@@ -15,12 +15,11 @@ module.exports = {
           'vue-style-loader',
           'css-loader'
         ],
-      },      {
+      }, {
         test: /\.vue$/,
         loader: 'vue-loader',
         options: {
-          loaders: {
-          }
+          loaders: {}
           // other vue-loader options go here
         }
       },
@@ -44,7 +43,15 @@ module.exports = {
     },
     extensions: ['*', '.js', '.vue', '.json']
   },
-  devtool: '#eval-source-map'
+  devtool: '#eval-source-map',
+  plugins: [
+    // ...
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: '"production"'
+      }
+    })
+  ]
 }
 
 if (process.env.NODE_ENV === 'production') {
