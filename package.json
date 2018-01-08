@@ -1,0 +1,20 @@
+{
+  "name": "sudoku_solver",
+  "version": "1.0.0",
+  "description": "sudoku solving algorithm",
+  "main": "index.js",
+  "scripts": {
+    "start": "env/bin/pserve development.ini",
+    "watch": "npm run watch --prefix sudoku_solver/static"
+  },
+  "keywords": [
+    "sudoku",
+    "solving",
+    "algorithm",
+    "python",
+    "pyramid",
+    "vue"
+  ],
+  "author": "darencorp",
+  "license": "ISC"
+}

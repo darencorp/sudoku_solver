@@ -1,0 +1,3 @@
+[run]
+source = sudoku_solver
+omit = sudoku_solver/test*
