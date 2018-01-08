@@ -4,7 +4,7 @@
   "description": "sudoku solving algorithm",
   "main": "index.js",
   "scripts": {
-    "start": "env/bin/pserve production.ini",
+    "start": "npm run webpack && env/bin/pserve production.ini",
     "watch": "npm run watch --prefix sudoku_solver/static",
     "inst": "npm run inst --prefix sudoku_solver/static",
     "webpack": "npm run webpack --prefix sudoku_solver/static"
