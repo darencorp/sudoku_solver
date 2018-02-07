@@ -1,0 +1,5 @@
+      [paste.app_factory]
+      main = sudoku_solver:main
+      [console_scripts]
+      initialize_sudoku_solver_db = sudoku_solver.scripts.initializedb:main
+      
