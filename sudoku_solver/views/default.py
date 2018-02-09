@@ -20,6 +20,7 @@ def resolve(request):
 
     j = r.json
     matrix = np.array(j)
+    matrix[matrix == None] = 0
     result = resolver.resolve(matrix)
 
     if result:

@@ -1,13 +1,15 @@
 from copy import deepcopy
 from itertools import permutations
-
 from sudoku_solver.scripts.sudoku import Sudoku
+
 import numpy as np
 
 
-class MyException(Exception):
+class CellException(Exception):
     pass
 
+
+branches = dict()
 
 mx = np.array([[0, 7, 0, 0, 5, 0, 0, 9, 0],
                [2, 0, 0, 0, 0, 6, 4, 0, 0],
@@ -21,11 +23,8 @@ mx = np.array([[0, 7, 0, 0, 5, 0, 0, 9, 0],
                [0, 0, 1, 5, 0, 0, 0, 0, 7],
                [0, 8, 0, 0, 2, 0, 0, 6, 0]])
 
-branches = dict()
-
 
 def resolve(matrix):
-    matrix[matrix == None] = 0
     sudoku = Sudoku(matrix)
     branches[1] = {'sudoku': sudoku}
 
@@ -39,37 +38,48 @@ def recursive(sudoku):
     :return: exit from recursion is sudoku is resolved or found error in
     """
 
-    if sudoku.unknowns[0].size != 0:
+    if sudoku.unknowns[0].size != 0:  # check resolved sudoku
 
-        if check_single_cells(sudoku):
+        check_single_cells(sudoku)  # fill all possible cells in current branch
+        sudoku.update()  # update amount of unknowns for the next branch
 
-            sudoku.update()
+        if sudoku.unknowns[0].size == 0:  # check resolved sudoku again
+            return branches[len(branches)]  # end of recursion
 
-            if sudoku.unknowns[0].size == 0:
-                return branches[len(branches)]
+        branches[len(branches) + 1] = deepcopy(branches[len(branches)])  # create new branch
 
-            branches[len(branches) + 1] = deepcopy(branches[len(branches)])  # create new branch
+        field = get_lowest_field(
+            branches[len(branches)]['sudoku'])  # get field with the lowest amount of unknowns cells
+        values = get_available_values(field, sudoku)  # get values needed to fill the field
 
-            field = get_lowest_field(branches[len(branches)]['sudoku'])
-            values = get_available_values(field, sudoku)
+        branch_values = permutations(values)  # get all possibles combinations of values
 
-            branch_values = permutations(values)
+        error_field = None  # error in permutation for current branch
 
-            for i in branch_values:
-                if not make_branch(field, branches[len(branches)], list(i)):
-                    branches.pop(len(branches))
-                    branches[len(branches) + 1] = deepcopy(branches[len(branches)])
-                    field = get_lowest_field(branches[len(branches)]['sudoku'])
-                else:
-                    return branches[len(branches)]
+        for values in branch_values:
 
-            branches.pop(len(branches))
-            return False
+            # check if current permutation is not in error case
+            if error_field is not None and values[error_field['index']] == error_field['value']:
+                continue
 
-        else:
-            return False
+            # fill branch with values of permutation
+            branch_result = fill_branch(field, branches[len(branches)], list(values))
+
+            # if error
+            if not branch_result['result']:
+
+                error_field = branch_result['error']  # save error case for current permutation
+
+                branches.pop(len(branches))  # delete state of current branch
+                branches[len(branches) + 1] = deepcopy(branches[len(branches)])  # make empty state for branch
+            else:
+                return branches[len(branches)]  # return filled field, end of recursion
+
+        branches.pop(len(branches))  # if all permutations is faulted
+        return False  # delete branch and go forward with previous branch
+
     else:
-        return branches[len(branches)]
+        return branches[len(branches)]  # end of recursion
 
 
 def check_single_cells(sudoku):
@@ -79,71 +89,45 @@ def check_single_cells(sudoku):
     :param sudoku: next branch of sudoku
     :return: false if impossible to fill cell and true if ok
     """
-    try:
-        group_rows = np.bincount(sudoku.unknowns[0])  # get count of zeros in the each row
-        filtered_rows = np.where(group_rows == 1)[0]  # get rows contained only 1 zero
 
-        if filtered_rows.size != 0:  # if there are rows
-            z_row = filtered_rows[0]  # get first row
-            fill_single_cell(sudoku, sudoku.matrix[z_row], row=z_row)  # fill zeros
-            sudoku.update()  # update unknowns and squares
-            check_single_cells(sudoku)  # check zeros again
+    group_rows = np.bincount(sudoku.unknowns[0])  # get count of zeros in the each row
+    filtered_rows = np.where(group_rows == 1)[0]  # get rows contained only 1 zero
 
-        group_cols = np.bincount(sudoku.unknowns[1])  # get count of zeros in the each column
-        filtered_cols = np.where(group_cols == 1)[0]  # get columns contained only 1 zero
+    if filtered_rows.size != 0:  # if there are rows
+        z_row = filtered_rows[0]  # get first row
+        fill_single_cell(sudoku.matrix[z_row])  # fill zeros
+        sudoku.update()  # update unknowns and squares
+        check_single_cells(sudoku)  # check zeros again
 
-        if filtered_cols.size != 0:
-            z_col = filtered_cols[0]
-            fill_single_cell(sudoku, sudoku.matrix[..., z_col], col=z_col)  # fill zeros
-            sudoku.update()
-            check_single_cells(sudoku)
+    group_cols = np.bincount(sudoku.unknowns[1])  # get count of zeros in the each column
+    filtered_cols = np.where(group_cols == 1)[0]  # get columns contained only 1 zero
 
-        filtered_square = list(
-            {'matrix': y['matrix'], 'x': y['zeros'][0][0], 'y': y['zeros'][0][1]} for x, y in sudoku.squares.items()
-            if len(y['zeros']) == 1)
+    if filtered_cols.size != 0:
+        z_col = filtered_cols[0]
+        fill_single_cell(sudoku.matrix[..., z_col])  # fill zeros
+        sudoku.update()
+        check_single_cells(sudoku)
 
-        if len(filtered_square) != 0:
-            z_square = filtered_square[0]  # get squares with single zero
-            fill_single_cell(sudoku, z_square['matrix'], row=z_square['x'], col=z_square['y'])
-            sudoku.update()
-            check_single_cells(sudoku)
+    filtered_square = list(x['matrix'] for x in sudoku.squares.values() if len(x['zeros']) == 1)
 
-    except MyException:
-        return False
-
-    return True
+    if len(filtered_square) != 0:
+        z_square = filtered_square[0]  # get squares with single zero
+        fill_single_cell(z_square)
+        sudoku.update()
+        check_single_cells(sudoku)
 
 
-def fill_single_cell(sudoku, field, row=None, col=None):
+def fill_single_cell(field):
     """
     fill the last cell in row or column or square
 
     :param field: row or column or square of sudoku
-    :param row: index of row in sudoku
-    :param col: index of col in sudoku
     """
 
-    square = field if row is not None and col is not None else None  # get square from field if field is square
-
-    row = np.where(field == 0)[0][0] if row is None else row  # get row if row is not set
-    col = np.where(field == 0)[0][0] if col is None else col  # get column if column is not set
-
-    square = sudoku.squares[
-        filter(lambda x: sudoku.squares[x] if x[0][0] <= row < x[0][1] and x[1][0] <= col < x[1][1] else None,
-               sudoku.squares.keys()).__next__()][
-        'matrix'] if square is None else square  # get square form sudoku if field is not square
-
-    possibles = np.array(range(1, 10))
+    possibles = np.array(range(1, 10))  # all values in field
     mask = np.isin(possibles, field)  # mask necessary values in field
     target = possibles[np.argwhere(mask == False)[0][0]]  # get single lack of value
-
-    if target not in sudoku.matrix[row] and target not in sudoku.matrix[
-        ..., col] and target not in square:  # check for error
-        sudoku.matrix[row][col] = target  # fill field
-    else:
-        raise MyException
-
-    return True
+    field[field == 0] = target  # fill up the value
 
 
 def get_lowest_field(sudoku):
@@ -153,26 +137,37 @@ def get_lowest_field(sudoku):
     :return: index of field in sudoku, type of field
     """
 
-    row_iterator = np.nditer(np.bincount(sudoku.unknowns[0]),
-                             flags=['f_index'])  # get iterator over grouped rows by amount of unknowns
-    rows_map = np.array([[row_iterator.index, i] for i in row_iterator if
-                         i > 0])  # group rows by their position and amount of unknowsn
-    lowest_row = np.sort(rows_map.view('i8,i8'), order=['f1'], axis=0).view(np.int)[
-        0]  # order map by amount of unknowns, and get first
-    row_filed = {'type': 'r', 'field': lowest_row[0], 'weight': lowest_row[1]}  # make dict with info of row_field
+    # get iterator over grouped rows by amount of unknowns
+    row_iterator = np.nditer(np.bincount(sudoku.unknowns[0]), flags=['f_index'])
 
-    col_iterator = np.nditer(np.bincount(sudoku.unknowns[1]), flags=['f_index'])  # make the same with columns
+    # group rows by their position and amount of unknowns
+    rows_map = np.array([[row_iterator.index, row] for row in row_iterator if row > 0])
+
+    # order map by amount of unknowns, and get first
+    lowest_row = np.sort(rows_map.view('i8,i8'), order=['f1'], axis=0).view(np.int)[0]
+
+    # make dict with info of row_field
+    row_filed = {'type': 'r', 'field': lowest_row[0], 'weight': lowest_row[1]}
+
+    # do the same with columns
+    col_iterator = np.nditer(np.bincount(sudoku.unknowns[1]), flags=['f_index'])
+
+    # group columns by their position and amount of unknowns
     cols_map = np.array([[col_iterator.index, i] for i in col_iterator if i > 0])
+
+    # order map by amount of unknowns, and get first
     lowest_col = np.sort(cols_map.view('i8,i8'), order=['f1'], axis=0).view(np.int)[0]
+
+    # make dict with info of col_field
     col_field = {'type': 'c', 'field': lowest_col[0], 'weight': lowest_col[1]}
 
-    lowest_square = sorted(sudoku.squares.values(), key=lambda x: len(x['zeros']) if len(x['zeros']) > 0 else 10)[
-        0]  # and squares
+    # do the same with squares
+    lowest_square = sorted(sudoku.squares.values(), key=lambda x: len(x['zeros']) if len(x['zeros']) > 0 else 10)[0]
     square_filed = {'type': 's', 'field': lowest_square['matrix'], 'weight': len(lowest_square['zeros']),
                     'zeros': lowest_square['zeros']}
 
-    return sorted([row_filed, col_field, square_filed], key=lambda x: x['weight'])[
-        0]  # get field with the lowest amount of unknowns
+    # get field with the lowest amount of unknowns
+    return sorted([row_filed, col_field, square_filed], key=lambda x: x['weight'])[0]
 
 
 def get_available_values(field_index, sudoku):
@@ -198,7 +193,7 @@ def get_available_values(field_index, sudoku):
     return possibles[np.argwhere(mask == False)].flatten()
 
 
-def make_branch(data_field, data, *args):
+def fill_branch(data_field, data, *args):
     """
     make new branch of sudoku and fill field through multiple values
     :param data_field: filed for filling
@@ -218,25 +213,25 @@ def make_branch(data_field, data, *args):
     else:
         indices = data_field['zeros']  # get indices of unknowns in square
 
-    for i, j in zip(indices, values):
+    for index, (x, v) in enumerate(zip(indices, values)):
 
         try:
-            # fill field depends on it type
+            # fill the field of each type type
             if data_field['type'] == 'r':
-                fill(data['sudoku'], (data_field['field'], i), j)  # for row
+                fill(data['sudoku'], (data_field['field'], x), v)  # for row
 
             elif data_field['type'] == 'c':
-                fill(data['sudoku'], (i, data_field['field']), j)  # for column
+                fill(data['sudoku'], (x, data_field['field']), v)  # for column
 
             else:
-                fill(data['sudoku'], (i[0], i[1]), j)  # for square
+                fill(data['sudoku'], (x[0], x[1]), v)  # for square
 
-        except MyException:
-            return False
+        except CellException as e:
+            return {'result': False, 'error': {'index': index, 'value': v}}
 
     data['sudoku'].update()
 
-    return recursive(data['sudoku'])
+    return {'result': recursive(data['sudoku']), 'error': None}
 
 
 def fill(sudoku, axies, value):
@@ -254,12 +249,12 @@ def fill(sudoku, axies, value):
 
     # check cell for error
     if value in sudoku.matrix[axies[0]]:
-        raise MyException
+        raise CellException(value)
 
     if value in sudoku.matrix[..., axies[1]]:
-        raise MyException
+        raise CellException(value)
 
     if value in square:
-        raise MyException
+        raise CellException(value)
 
-    sudoku.matrix[axies[0], axies[1]] = value
+    sudoku.matrix[axies[0], axies[1]] = value  # fill up the value
