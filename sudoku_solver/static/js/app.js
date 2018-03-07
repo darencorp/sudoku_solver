@@ -6,6 +6,7 @@ export default {
     return {
       sudoku: [],
       error: false,
+      pending: false,
       reset: function () {
         this.sudoku.forEach((x, index_x) => {
           x.forEach((i, index_y) => {
@@ -29,6 +30,7 @@ export default {
         })
       },
       resolve: function () {
+        this.pending = true
         axios.post('/resolve', this.sudoku).then((data) => {
           if (!data.data) {
             this.error = true
@@ -36,6 +38,8 @@ export default {
             this.sudoku = data.data
             this.error = false
           }
+
+          this.pending = false
         })
       }
     }
