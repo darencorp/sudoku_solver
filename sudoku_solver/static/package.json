@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "watch": "webpack --watch",
-    "inst": "npm i",
+    "install": "npm i",
     "webpack": "webpack"
   },
   "dependencies": {

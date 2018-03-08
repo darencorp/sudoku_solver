@@ -1,5 +1,6 @@
 from pyramid.view import view_config
-from sudoku_solver.scripts import resolver
+from sudoku_solver.scripts import resolver as stochastic
+from sudoku_solver.scripts import constraint_resolver as constraint
 
 import numpy as np
 
@@ -11,7 +12,7 @@ def my_view(request):
 
 @view_config(route_name='sudoku', renderer='json')
 def sudoku(request):
-    return resolver.mx.tolist()
+    return stochastic.mx.tolist()
 
 
 @view_config(route_name='resolve', renderer='json')
@@ -19,11 +20,24 @@ def resolve(request):
     r = request
 
     j = r.json
-    matrix = np.array(j)
-    matrix[matrix == None] = 0
-    result = resolver.resolve(matrix)
 
-    if result:
-        return np.asanyarray(result['sudoku'].matrix, dtype=np.int16).tolist()
+    sudoku = j.get('sudoku', None)
+
+    if sudoku is None:
+        return False
+
+    sudoku_array = np.array(sudoku)
+
+    sudoku_array[sudoku_array == None] = 0
+    sudoku_array[sudoku_array == ''] = 0
+    sudoku_array.astype(int)
+
+    if j['type'] == 'constraint':
+        result = constraint.resolve(sudoku_array)
+    else:
+        result = stochastic.resolve(sudoku_array)
+
+    if result is not None:
+        return np.asanyarray(result, dtype=np.int16).tolist()
     else:
         return False

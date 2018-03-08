@@ -7,6 +7,7 @@ export default {
       sudoku: [],
       error: false,
       pending: false,
+      type: 'constraint',
       reset: function () {
         this.sudoku.forEach((x, index_x) => {
           x.forEach((i, index_y) => {
@@ -31,7 +32,7 @@ export default {
       },
       resolve: function () {
         this.pending = true
-        axios.post('/resolve', this.sudoku).then((data) => {
+        axios.post('/resolve', {'sudoku': this.sudoku, 'type': this.type}).then((data) => {
           if (!data.data) {
             this.error = true
           } else {
@@ -41,6 +42,10 @@ export default {
 
           this.pending = false
         })
+      },
+      changeType: function (type) {
+        this.type = type
+        console.log(this.type)
       }
     }
   },

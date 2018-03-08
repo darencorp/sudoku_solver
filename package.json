@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm run webpack && env/bin/pserve production.ini",
     "watch": "npm run watch --prefix sudoku_solver/static",
-    "inst": "npm run inst --prefix sudoku_solver/static",
+    "install": "npm run install --prefix sudoku_solver/static",
     "webpack": "npm run webpack --prefix sudoku_solver/static"
   },
   "keywords": [

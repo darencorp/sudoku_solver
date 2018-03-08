@@ -25,10 +25,15 @@ mx = np.array([[0, 7, 0, 0, 5, 0, 0, 9, 0],
 
 
 def resolve(matrix):
+    global branches
+
     sudoku = Sudoku(matrix)
     branches[1] = {'sudoku': sudoku}
+    sudoku_result = recursive(sudoku)['sudoku']
 
-    return recursive(sudoku)
+    branches = dict()
+
+    return sudoku_result.matrix
 
 
 def recursive(sudoku):
@@ -37,6 +42,8 @@ def recursive(sudoku):
     :param sudoku: defined sudoku
     :return: exit from recursion is sudoku is resolved or found error in
     """
+
+    global branches
 
     if sudoku.unknowns[0].size != 0:  # check resolved sudoku
 

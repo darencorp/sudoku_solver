@@ -27,11 +27,24 @@
           <button class="uk-button uk-button-primary uk-width-1-1 uk-margin-top">
             <div v-if="!pending" v-on:click="resolve()">Resolve</div>
             <div v-else uk-spinner="" class="uk-spinner uk-icon">
-            <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" ratio="1">
-              <circle fill="none" stroke="#000" cx="15" cy="15" r="14"></circle>
-            </svg>
-          </div>
+              <svg width="30" height="30" viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" ratio="1">
+                <circle fill="none" stroke="#000" cx="15" cy="15" r="14"></circle>
+              </svg>
+            </div>
           </button>
+        </div>
+        <div>
+          <div class="uk-width-1-1 uk-flex uk-margin-top">
+            <div v-on:click="changeType('constraint')">
+              <input id="constranit" type="radio" name="type" checked/>
+              <label for="constranit">Constraint</label>
+            </div>
+            &nbsp;
+            <div v-on:click="changeType('stochastic')">
+              <input id="stochastic" type="radio" name="type"/>
+              <label for="stochastic">Stochastic</label>
+            </div>
+          </div>
         </div>
       </div>
     </div>
