@@ -16,5 +16,5 @@ This gives better performance over than 87%. For example: average time of resolv
 
 Clone this repository and then:
 
-- npm run inst
+- npm run install
 - npm start
